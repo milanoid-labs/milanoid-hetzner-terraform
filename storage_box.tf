@@ -1,7 +1,8 @@
 # Off-site backup target for the family photo library on the Synology NAS
 # (milanoid-labs/homelab-cluster#872). Synology Hyper Backup writes an encrypted,
 # multi-version backup here over rsync/SSH (port 23), logged in as the `synology`
-# subaccount, so the main account's credentials never go on the NAS.
+# subaccount, so the main account's credentials never go on the NAS. The subaccount's
+# access_settings are what make port 23 reachable from home.
 
 # Hetzner's Storage Box password policy (applies to boxes and subaccounts): 12-128 chars,
 # at least one upper case letter, lower case letter, number and special character, from
@@ -33,21 +34,33 @@ resource "hcloud_storage_box" "nas_backup" {
   location         = "fsn1"
   password         = random_password.storage_box.result
 
+  # Main account: no remote access at all. Nothing logs in as it (Hyper Backup uses the
+  # subaccount, which has its own access_settings), and it can see every subaccount's
+  # directory, so it shouldn't accept password logins from the internet.
   access_settings = {
-    # Hyper Backup's "rsync-compatible server" destination uses SSH on port 23, from home.
-    ssh_enabled          = true
-    reachable_externally = true
+    ssh_enabled          = false
+    reachable_externally = false
     samba_enabled        = false
     webdav_enabled       = false
     zfs_enabled          = false
   }
 
-  # No snapshot_plan: Hyper Backup already keeps versions, and Storage Box snapshots
-  # count against the 1 TiB quota.
+  # The copy the NAS can't touch. The synology subaccount can write, so whoever controls
+  # the NAS (ransomware, a stolen DSM admin) can delete every Hyper Backup version in
+  # synology/. Snapshots can only be made or deleted by the main account or the API, so
+  # they survive that. Daily, keeping the last 10 (BX11's automatic-snapshot limit);
+  # ZFS snapshots only hold what changed, so a mostly-append photo backup costs little
+  # quota. Hour is UTC: after Hyper Backup's nightly run.
+  snapshot_plan = {
+    hour          = 6
+    minute        = 0
+    max_snapshots = 10
+  }
 
-  # Two guards: delete_protection stops deletion from the Console/API, prevent_destroy
-  # stops a plan that would destroy (or replace) the box. This box holds the NAS's only
-  # off-site copy; removing it on purpose means editing both out first.
+  # Deletion guards. delete_protection stops deletion from the Console/API, but NOT from
+  # tofu: the provider turns it off by itself before deleting. prevent_destroy only works
+  # while this block exists. So tofu-apply also refuses any saved plan that destroys or
+  # replaces an hcloud_storage_box (see .github/workflows/tofu-apply.yaml).
   delete_protection = true
 
   labels = {

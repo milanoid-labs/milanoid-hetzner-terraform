@@ -26,9 +26,8 @@ rule "terraform_naming_convention" {
   enabled = true
 }
 
-## Disabled: this repo deliberately splits config into topic-named files
-## (docker.tf, security.tf, ...) rather than a main.tf/outputs.tf
-## module layout.
+## Not enabled: this is a root config split into topic-named files (storage_box.tf,
+## terraform.tf, outputs.tf), not a module with main.tf/variables.tf.
 # rule "terraform_standard_module_structure" {
 #   enabled = false
 # }

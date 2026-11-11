@@ -16,9 +16,6 @@ jobs:
   apply:
     runs-on: homelab-runners
 
-    env:
-      HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
-
     steps:
       - name: checkout
         id: checkout
@@ -44,10 +41,29 @@ jobs:
         id: tofu-init
         run: tofu init -input=false
 
+      # The R/W Hetzner token goes only to the steps that run tofu with providers,
+      # not to the third-party actions above. -lock-timeout: wait for a lock held by
+      # someone else (e.g. a local plan) instead of failing the merge-time apply.
       - name: tofu plan
         id: tofu-plan
-        run: tofu plan -input=false -out tfplan
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+        run: tofu plan -input=false -lock-timeout=5m -out tfplan
+
+      # The Storage Box holds the NAS's only off-site backup. delete_protection doesn't
+      # stop tofu (the provider turns it off before deleting) and prevent_destroy vanishes
+      # with its resource block, so refuse any plan that destroys or replaces a box.
+      # To remove one on purpose, delete it by hand in the Hetzner Console first.
+      - name: refuse storage box deletion
+        id: guard
+        run: |
+          if tofu show -no-color tfplan | grep -E '^\s*# hcloud_storage_box\.[^ ]+ (will be destroyed|must be replaced)'; then
+            echo "::error::This plan destroys or replaces a Storage Box. Refusing to apply."
+            exit 1
+          fi
 
       - name: tofu apply
         id: tofu-apply
-        run: tofu apply -input=false -auto-approve tfplan
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+        run: tofu apply -input=false -lock-timeout=5m -auto-approve tfplan
