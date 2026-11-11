@@ -84,13 +84,51 @@ tofu init
 tofu plan
 ```
 
-What Hyper Backup's destination form needs ("rsync-compatible server", port 23, SSH on):
+## Hyper Backup setup (DSM)
 
-```sh
-tofu output synology_server
-tofu output synology_username
-tofu output -raw synology_password
-```
+The NAS side is configured by hand in DSM (Hyper Backup → **+** → Data backup task). If you
+ever need to recreate it, use these settings. Values in `<…>` come from `tofu output`.
+
+**Destination**
+
+| Field | Value |
+|---|---|
+| Destination | File Server → **rsync** |
+| Backup version type | **Multiple versions** |
+| Server type | **rsync-compatible server** |
+| Server name | `<synology_server>`, the `-sub1` host, **not** the main account's |
+| Transfer encryption | On |
+| Port | **23** |
+| Username | `<synology_username>`, the `-sub1` user |
+| Password | `tofu output -raw synology_password \| pbcopy` |
+| Backup module | type **`/home/`** by hand |
+| Directory | `nas2-photos` (a single name, no `/`). Hyper Backup creates `nas2-photos.hbk` |
+
+Things that went wrong the first time:
+- **The password manager autofills the main account** (`u…` without `-sub1`). The main account
+  has SSH off, so that login fails with "Failed to establish the SSH connection".
+- **The Backup module dropdown stays empty.** Hyper Backup lists modules from the server's root,
+  and the subaccount is locked into its own folder, so listing `/` is denied. Type `/home/`
+  yourself. `home` without the slashes fails with "Failed to connect to the backup destination".
+  ([Hetzner's tutorial](https://community.hetzner.com/tutorials/synology-hyperbackup-to-storagebox)
+  says the same.)
+- **The main account doesn't need SSH or external access.** The subaccount's own
+  `access_settings` are enough.
+
+**Source:** `photo`, and each person's `homes/<user>/Photos`. Expand `homes` and tick only the
+`Photos` folders, never `homes` as a whole. The dedup quarantine (`homes/<user>/_duplicates-quarantine`)
+sits outside `Photos`, so it stays out. No applications.
+
+**Settings:** notifications on, compression **off** (photos and videos are already compressed),
+schedule daily 01:00, integrity check weekly on Sunday 04:00, **client-side encryption on**.
+
+**Rotation:** Smart Recycle, 120 versions. That's about a month of daily versions, then weekly
+ones going back about 2 years. Versions share unchanged data, so the history costs little quota.
+
+**Encryption secrets:** the encryption password and the `.pem` key DSM offers at the end of the
+wizard. Keep both outside the NAS (password manager plus a paper/USB copy). See [Restore](#restore).
+
+The first upload of about 425 GB ran at about 12 Mbit/s, which took about 3 days.
 
 ## Restore
 
