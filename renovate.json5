@@ -1,0 +1,38 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  // Run by homelab-cluster's Renovate CronJob (infrastructure/controllers/base/renovate),
+  // which lists this repo explicitly; the app's repo access is in milanoid-labs-terraform.
+  // No automerge: every PR's Tofu Plan comment shows what an update would change on the
+  // Storage Box that holds the NAS's off-site backup, so merges stay manual.
+  extends: [
+    'config:best-practices',
+  ],
+  packageRules: [
+    {
+      // This repo runs OpenTofu, and .terraform.lock.hcl records providers from
+      // registry.opentofu.org. Renovate defaults to registry.terraform.io for sources
+      // without a host, so point it at OpenTofu's registry (Renovate's terraform manager
+      // docs, "Terraform vs OpenTofu") so lock-file hashes match what `tofu init` fetches.
+      matchDatasources: [
+        'terraform-provider',
+        'terraform-module',
+      ],
+      registryUrls: [
+        'https://registry.opentofu.org',
+      ],
+    },
+    {
+      // Renovate treats required_version as a hashicorp/terraform version, but this is
+      // OpenTofu, whose version numbers are separate. Leave it alone. The OpenTofu version
+      // CI runs is tracked anyway: the github-actions manager reads setup-opentofu's
+      // tofu_version input (shows up as depName "opentofu", depType "uses-with").
+      matchManagers: [
+        'terraform',
+      ],
+      matchDepTypes: [
+        'required_version',
+      ],
+      enabled: false,
+    },
+  ],
+}
