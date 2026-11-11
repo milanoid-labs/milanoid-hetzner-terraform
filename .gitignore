@@ -1,3 +1,18 @@
 .DS_Store
 .idea/
 .vscode/
+
+# OpenTofu
+.terraform/
+*.tfstate
+*.tfstate.*
+tfplan
+plan.txt
+crash.log
+*.auto.tfvars
+*.tfvars
+# The Hetzner API token lives in ~/.config/milanoid-hetzner-terraform.env, but never
+# let a copy dropped in the repo get committed.
+*.env
+.env*
+!.envrc

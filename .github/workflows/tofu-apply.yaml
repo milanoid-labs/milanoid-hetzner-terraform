@@ -1,0 +1,53 @@
+name: Tofu Apply
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: tofu-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: homelab-runners
+
+    env:
+      HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+
+    steps:
+      - name: checkout
+        id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: setup opentofu
+        id: setup-opentofu
+        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: "v1.13.9"
+          # The wrapper shells out via `env node`, but our self-hosted runner
+          # has no system Node on PATH. We don't read step outputs, so disable it.
+          tofu_wrapper: false
+
+      - name: configure aws credentials
+        id: configure-aws-credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_APPLY_ROLE_ARN }}
+
+      - name: tofu init
+        id: tofu-init
+        run: tofu init -input=false
+
+      - name: tofu plan
+        id: tofu-plan
+        run: tofu plan -input=false -out tfplan
+
+      - name: tofu apply
+        id: tofu-apply
+        run: tofu apply -input=false -auto-approve tfplan
