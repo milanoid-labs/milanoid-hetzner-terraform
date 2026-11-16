@@ -30,7 +30,7 @@ resource "random_password" "synology" {
 
 resource "hcloud_storage_box" "nas_backup" {
   name             = "nas-backup"
-  storage_box_type = "bx11" # 1 TiB; the photo library is ~425 GB after dedup
+  storage_box_type = "bx11" # 1 TiB; the photo library is ~571 GiB (553 GiB backed up, Nov 2026)
   location         = "fsn1"
   password         = random_password.storage_box.result
 

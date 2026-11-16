@@ -128,7 +128,7 @@ ones going back about 2 years. Versions share unchanged data, so the history cos
 **Encryption secrets:** the encryption password and the `.pem` key DSM offers at the end of the
 wizard. Keep both outside the NAS (password manager plus a paper/USB copy). See [Restore](#restore).
 
-The first upload of about 425 GB ran at about 12 Mbit/s, which took about 3 days.
+The first upload (571 GiB of source, 553 GiB on the box after Hyper Backup's dedup) took about 5 days, finishing 2026-11-16. That leaves about 470 GiB of the 1 TiB for growth and snapshots.
 
 ## Restore
 
