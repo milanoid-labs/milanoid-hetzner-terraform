@@ -2,7 +2,9 @@ name: Tofu Plan
 
 on:
   pull_request:
-    branches: [main]
+    paths:
+      - '**.tf'
+      - '.terraform.lock.hcl'
 
 permissions:
   contents: read

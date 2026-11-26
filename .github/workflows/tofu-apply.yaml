@@ -2,7 +2,9 @@ name: Tofu Apply
 
 on:
   push:
-    branches: [main]
+    paths:
+      - '**.tf'
+      - '.terraform.lock.hcl'
 
 permissions:
   contents: read
