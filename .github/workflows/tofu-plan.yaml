@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '**.tf'
+      - '.terraform.lock.hcl'
 
 permissions:
   contents: read
